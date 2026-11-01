@@ -45,7 +45,7 @@ const deletion = (created_at: number, signingKey = key) =>
   )
 
 /** A relay transport returning matching signed events followed by EOSE. */
-function clientWith(events: NostrEvent[]) {
+function clientWith(events: NostrEvent[], obeyFilters = true) {
   const socket = new EventTarget()
   const ws = Object.assign(socket, {
     send: (json: string) => {
@@ -53,7 +53,7 @@ function clientWith(events: NostrEvent[]) {
       if (type !== 'REQ') return
       queueMicrotask(() => {
         for (const event of events) {
-          if (filters.some(filter => matchFilter(filter, event))) {
+          if (!obeyFilters || filters.some(filter => matchFilter(filter, event))) {
             socket.dispatchEvent(
               new MessageEvent('message', { data: JSON.stringify(['EVENT', id, event]) })
             )
@@ -74,6 +74,29 @@ afterEach(() => {
 })
 
 describe('embed video lifecycle', () => {
+  it('ignores forged signatures and events that a relay sends outside the requested filter', async () => {
+    const forged = { ...updated, created_at: 1000, content: 'forged' }
+    const stranger = finalizeEvent(
+      { kind: 34235, created_at: 2000, content: '', tags: [['d', 'clip']] },
+      otherKey
+    )
+    expect((await clientWith([forged, stranger, original], false).fetchEvent(address)).id).toBe(
+      original.id
+    )
+  })
+
+  it('does not accept a valid event with a different ID for an event lookup', async () => {
+    const identifier = { type: 'event' as const, data: { id: original.id, relays: [] } }
+    expect((await clientWith([updated, original], false).fetchEvent(identifier)).id).toBe(
+      original.id
+    )
+  })
+
+  it('rejects a forged event even when its author and address match', async () => {
+    const forged = { ...updated, content: 'not signed by the author' }
+    await expect(clientWith([forged], false).fetchEvent(address)).rejects.toThrow('not found')
+  })
+
   it('shows the latest metadata even when an older version was embedded before', async () => {
     localStorage.setItem(
       `nostube-embed-event-${coordinate}`,

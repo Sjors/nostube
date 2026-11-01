@@ -123,6 +123,8 @@ export class NostrClient {
             if (verifyEvent(nostrEvent)) deletionEvents.push(nostrEvent)
             return
           }
+          // Relays are untrusted: verify both the requested identifier and the event signature.
+          if (!matchFilter(filter, nostrEvent) || !verifyEvent(nostrEvent)) return
           collectedEvents.push(nostrEvent)
           // Give the other relays a moment to answer with a newer version or a deletion.
           earlyReturnTimer ??= setTimeout(() => {

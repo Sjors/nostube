@@ -126,7 +126,7 @@ The embed looks up the video on, in this order:
 2. the relay hints inside the `nevent1…` or `naddr1…` identifier,
 3. `wss://relay.divine.video` and `wss://relay.primal.net`.
 
-It asks all of them, takes the newest version of the event and checks for a deletion by the author. If a video only lives on a relay that is not on this list, add it with `relays=`.
+It asks all of them, accepts only events with a valid signature matching the requested event ID or address, takes the newest version and checks for a deletion by the author. If a video only lives on a relay that is not on this list, add it with `relays=`.
 
 ## Link previews with oEmbed
 
