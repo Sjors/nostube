@@ -48,16 +48,13 @@ export function isSafari(): boolean {
  * - Not supported until iOS 14.5+ and only partially
  * - Better to avoid for compatibility
  *
- * AV1 support on iOS:
- * - Not supported until iOS 17+
- * - Limited to newer devices only
+ * AV1 support varies with the browser and device. It is checked with the exact
+ * MIME/codec string through canPlayType below, rather than an iOS-wide rule.
  */
 const IOS_UNSUPPORTED_CODECS = [
   'hevc', // Generic HEVC name (use hvc1 instead)
   'h265', // Generic H.265 name (use hvc1 instead)
   'vp9', // VP9 (limited support)
-  'av01', // AV1 (limited support)
-  'av1', // AV1 alternative name
 ]
 
 /**
@@ -70,11 +67,11 @@ export function isCodecSupported(mimeType?: string): boolean {
 
   const normalizedMime = mimeType.toLowerCase()
 
-  // HLS playlists are handled by hls.js on all browsers — never filter them out
-  if (
-    normalizedMime === 'application/vnd.apple.mpegurl' ||
-    normalizedMime === 'application/x-mpegurl'
-  ) {
+  // The playback engine checks HLS codecs through native HLS or hls.js/MSE.
+  // A browser's inability to play the playlist MIME directly says nothing about
+  // its ability to play the manifest through hls.js. Parameters do not change that.
+  const baseMime = normalizedMime.split(';')[0].trim()
+  if (baseMime === 'application/vnd.apple.mpegurl' || baseMime === 'application/x-mpegurl') {
     return true
   }
 

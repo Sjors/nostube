@@ -88,6 +88,8 @@ Example: start at 30 seconds, loop, no overlay, red buttons:
 
 **Sources.** The player plays the video variants listed in the event, including HLS and DASH streams. If a URL fails, it tries the other variants and the Blossom servers in the author's server list (kind 10063).
 
+**AV1.** Direct MP4 variants with AV1 are checked using the browser's `canPlayType` response for the declared MIME and codec configuration, including on iOS. The player does not reject all iOS devices solely because a variant uses AV1. HLS codec support is checked by the playback engine; a playlist with a `codecs` parameter remains eligible for native HLS or hls.js. Browser capability reports do not guarantee successful decoding, so test the actual devices you intend to support. Desktop Chrome playback does not establish Safari or mobile compatibility.
+
 **Chapters.** Timestamps in the video description (`0:00 Intro`) show as chapter markers on the progress bar.
 
 ## Content warnings and NSFW

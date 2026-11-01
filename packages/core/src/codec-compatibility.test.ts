@@ -123,10 +123,42 @@ describe('codec-compatibility', () => {
       expect(isCodecSupported('video/webm; codecs=vp9')).toBe(false)
     })
 
-    it('should filter AV1 on iOS', () => {
+    it('should filter AV1 when an iOS device reports no decoder support', () => {
       mockNavigator('Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X)', 'iPhone', 0)
+      mockCanPlayType({})
       expect(isCodecSupported('video/mp4; codecs=av01')).toBe(false)
       expect(isCodecSupported('video/mp4; codecs=av1')).toBe(false)
+    })
+
+    it('should allow AV1 on iOS when the exact codec configuration is playable', () => {
+      mockNavigator('Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X)', 'iPhone', 0)
+      const mime = 'video/mp4; codecs="av01.0.04M.08,mp4a.40.2"'
+      mockCanPlayType({ [mime]: 'probably' })
+      expect(isCodecSupported(mime)).toBe(true)
+      // Another profile/level is checked separately, not inferred from AV1's name.
+      expect(isCodecSupported('video/mp4; codecs="av01.2.12M.12,mp4a.40.2"')).toBe(false)
+    })
+
+    it('should not infer AV1 support from a new iOS version', () => {
+      mockNavigator('Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X)', 'iPhone', 0)
+      mockCanPlayType({})
+      expect(isCodecSupported('video/mp4; codecs="av01.0.04M.08,mp4a.40.2"')).toBe(false)
+    })
+
+    it('should use device capability on iPad in desktop mode too', () => {
+      mockNavigator('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15)', 'MacIntel', 5)
+      const mime = 'video/mp4; codecs="av01.0.04M.08,mp4a.40.2"'
+      mockCanPlayType({ [mime]: 'maybe' })
+      expect(isCodecSupported(mime)).toBe(true)
+    })
+
+    it('should leave parameterized HLS codec checks to the playback engine', () => {
+      mockNavigator('Chrome', 'Linux', 0)
+      mockCanPlayType({})
+      expect(
+        isCodecSupported('application/vnd.apple.mpegurl; codecs="av01.0.05M.08,mp4a.40.2"')
+      ).toBe(true)
+      expect(isCodecSupported('application/x-mpegurl; codecs="av01.0.04M.08,mp4a.40.2"')).toBe(true)
     })
 
     it('should allow H.264 on iOS', () => {
@@ -209,6 +241,7 @@ describe('codec-compatibility', () => {
 
     it('should return original array if all filtered', () => {
       mockNavigator('Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X)', 'iPhone', 0)
+      mockCanPlayType({})
 
       const variants = [
         createVariant('video/webm; codecs=vp9', '1080p'),
