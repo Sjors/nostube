@@ -153,7 +153,16 @@ export function EmbedApp({ params, video, playback, profile, error, isLoading }:
         showTimelineMarkers={params.showZaps}
       />
 
-      {params.showBranding && (
+      {params.backUrl && (
+        <a
+          href={params.backUrl}
+          className="absolute right-3 bottom-16 rounded bg-black/60 px-3 py-1 text-sm text-white hover:bg-black/80"
+        >
+          Back to page
+        </a>
+      )}
+
+      {params.showBranding && !params.backUrl && (
         <a
           href={links.watchUrl}
           target="_blank"

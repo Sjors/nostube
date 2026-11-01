@@ -18,6 +18,22 @@ export interface EmbedParams {
   accentColor: string
   /** The config of the instance serving this embed, once read; null on nostube. */
   instance: InstanceConfig | null
+  /** Optional same-origin link back to the hosting page. */
+  backUrl?: string | null
+}
+
+export function parseBackUrl(
+  value: string | null,
+  origin: string = location.origin
+): string | null {
+  if (!value) return null
+  try {
+    const url = new URL(value, origin)
+    // Keep the absolute URL: a pathname beginning // would navigate to another host.
+    return url.origin === origin && ['https:', 'http:'].includes(url.protocol) ? url.href : null
+  } catch {
+    return null
+  }
 }
 
 /**
@@ -45,6 +61,7 @@ export function parseURLParams(): EmbedParams {
       : [],
     accentColor: params.get('color') || '8b5cf6',
     instance: null,
+    backUrl: parseBackUrl(params.get('back')),
   }
 }
 

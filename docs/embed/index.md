@@ -43,6 +43,7 @@ This is the real player, served from nostu.be. Autoplay is off, so playback star
 | Parameter | Value | Default | Effect |
 | --- | --- | --- | --- |
 | `v` | `nevent1…`, `naddr1…` or `note1…` | required | The video to play. |
+| `back` | same-origin URL or path | none | Optional Back to page link to the hosting site, replacing the branding link. Links to other origins are ignored. |
 | `t` | whole seconds | `0` | Start position, e.g. `t=90` starts at 1:30. |
 | `autoplay` | `1` | off | Try to start playback automatically. Browsers may require `muted=1`. |
 | `muted` | `1` | off | Start with sound muted; the viewer can unmute. |
