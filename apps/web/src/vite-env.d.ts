@@ -6,6 +6,10 @@ declare global {
     readonly VITE_NSFW_SAFETY?: string
     /** `true` builds the nostube-server instance build; see packages/core/src/instance-config.ts */
     readonly VITE_INSTANCE_BUILD?: string
+    /** Optional channel author restriction for the standalone embed build. */
+    readonly VITE_EMBED_ALLOWED_PUBKEYS?: string
+    /** Optional fixed relay list for the standalone embed build. */
+    readonly VITE_EMBED_RELAYS?: string
   }
 }
 

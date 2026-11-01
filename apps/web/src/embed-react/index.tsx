@@ -9,6 +9,7 @@ import { instanceRelays } from '@nostube/core/instance-config'
 import { decodeVideoIdentifier, buildRelayList } from './lib/nostr-decoder'
 import { NostrClient } from './lib/nostr-client'
 import { ProfileFetcher } from './lib/profile-fetcher'
+import { readEmbedChannel, requireChannelAuthor } from './lib/channel'
 import { processEvent, type VideoEvent } from '@nostube/core/video-event'
 import type { Profile } from './lib/profile-fetcher'
 import { TooltipProvider } from '@nostube/widgets/components/tooltip'
@@ -127,7 +128,10 @@ async function initEmbed(): Promise<void> {
     authorBlossomServers: [],
   })
 
+  let client: NostrClient | undefined
   try {
+    const channel = readEmbedChannel()
+    if (channel.pubkeys) neutralizeBranding()
     // Decode video identifier
     const identifier = decodeVideoIdentifier(params.videoId)
     if (!identifier) {
@@ -145,19 +149,28 @@ async function initEmbed(): Promise<void> {
     // defaults, and no nostube moderation preset from public relays (the preset gate is off
     // there). The relay constants cannot be used here: they were evaluated before the config.
     const hintRelays = identifier.type === 'event' ? identifier.data.relays : identifier.data.relays
+    if (
+      identifier.type === 'address' &&
+      channel.pubkeys &&
+      !channel.pubkeys.includes(identifier.data.pubkey)
+    ) {
+      throw new Error('This video is not from this channel')
+    }
     const relays = instance
       ? instanceRelays(instance)
-      : buildRelayList(hintRelays, params.customRelays)
+      : (channel.relays ?? buildRelayList(hintRelays, params.customRelays))
 
     // The moderation preset loads in parallel with the video event.
     const viewer = readViewerSettings()
-    const presetPromise = instance ? Promise.resolve(null) : loadPreset(viewer.presetPubkey)
+    const presetPromise =
+      instance || channel.pubkeys ? Promise.resolve(null) : loadPreset(viewer.presetPubkey)
 
     // Create Nostr client
-    const client = new NostrClient(relays)
+    client = new NostrClient(relays)
 
     // Fetch video event
     const [event, preset] = await Promise.all([client.fetchEvent(identifier), presetPromise])
+    requireChannelAuthor(event, channel)
     if (preset?.blockedPubkeys.includes(event.pubkey) || preset?.blockedEvents.includes(event.id)) {
       client.closeAll()
       renderApp(reactRoot, params, {
@@ -183,10 +196,10 @@ async function initEmbed(): Promise<void> {
 
     // Fail closed: without the preset, NSFW authors can't be recognised, so
     // nothing plays. Self-hosted builds with VITE_NSFW_SAFETY=off skip the gate; an instance
-    // has no preset and goes by the video's content warning.
+    // or curated channel has no preset and goes by the video's content warning.
     const playback: EmbedPlayback = !NSFW_SAFETY_ENABLED
       ? 'play'
-      : !preset && !instance
+      : !preset && !instance && !channel.pubkeys
         ? 'unverified'
         : getVideoPlayback(video.contentWarning, viewer.nsfwFilter)
     if (playback === 'hidden' || playback === 'unverified') {
@@ -228,9 +241,6 @@ async function initEmbed(): Promise<void> {
       isLoading: false,
       authorBlossomServers,
     })
-
-    // Cleanup
-    client.closeAll()
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Failed to load video'
     renderApp(reactRoot, params, {
@@ -240,6 +250,8 @@ async function initEmbed(): Promise<void> {
       isLoading: false,
       authorBlossomServers: [],
     })
+  } finally {
+    client?.closeAll()
   }
 }
 

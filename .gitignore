@@ -1,6 +1,7 @@
 node_modules/
 target/
 dist/
+/apps/web/dist-embed/
 .DS_Store
 *.log
 # local German working docs — repo keeps English docs only

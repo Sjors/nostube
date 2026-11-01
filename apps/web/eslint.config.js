@@ -77,5 +77,10 @@ export default tseslint.config(
       ],
       'custom/require-webmanifest': 'error',
     },
+  },
+  {
+    // The standalone player is embeddable content, not an installable app.
+    files: ['embed.html'],
+    rules: { 'custom/require-webmanifest': 'off' },
   }
 )

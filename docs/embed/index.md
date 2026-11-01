@@ -134,6 +134,49 @@ To turn a pasted video link into a player automatically, use the [oEmbed endpoin
 
 ## Self-hosted embed
 
+### Standalone channel player under a path
+
+The player can be hosted on its own, without the web app, Studio, a new relay or a new
+Blossom server. It works as a full-page player as well as inside an iframe.
+
+From the repository root, install dependencies with `npm ci`, then build just the player:
+
+```sh
+VITE_EMBED_ALLOWED_PUBKEYS=npub1... \
+VITE_EMBED_RELAYS=wss://relay.example,wss://relay.nostu.be \
+npm run build:embed --workspace nostube
+```
+
+`VITE_EMBED_ALLOWED_PUBKEYS` is a comma-separated list of npubs or 64-character hex
+public keys. It is baked into the build: URL parameters cannot change it. A configured
+empty or malformed list refuses playback. The player verifies the video's signature and
+requested event ID/address, then checks the author before parsing media or loading its
+poster, profile or Blossom list. With no setting it remains a general-purpose player.
+
+A channel-restricted player uses the signed video's content warning, without consulting
+Nostube's public moderation preset. The normal content-warning settings still apply.
+`VITE_EMBED_RELAYS`, when set, replaces public defaults, URL relay parameters and identifier
+hints; when absent the usual relay discovery applies. Neither setting affects uploads or
+publishes anything.
+
+Copy **all** of `apps/web/dist-embed/` to a static directory. Asset URLs are relative;
+there is no root service worker or web manifest. For example, serve its `embed.html` at
+`/video/` and the other generated files beside it. With nginx:
+
+```nginx
+location = /video {
+    return 308 /video/$is_args$args;
+}
+location ^~ /video/ {
+    alias /srv/video-player/;
+    index embed.html;
+}
+```
+
+Open `/video/?v=naddr1...&branding=0&zaps=0`. This displays only the player, without an
+index or site navigation. No application backend, server-side relay lookup or transcoding
+is needed. The browser connects directly to the configured relays and media hosts.
+
 **With the web app.** Every build of the [web app](/web-app/) contains `embed.html`, so a self-hosted copy serves the player at `https://your-domain/embed.html?v=…`. It behaves like the one on nostu.be, including the **Open on nostube** links to `https://nostu.be`.
 
 **With the Nostube Server.** The [Nostube Server](/server/) serves its own `/embed.html`, built as part of the creator's website:
